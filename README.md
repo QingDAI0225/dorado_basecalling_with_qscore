@@ -1,5 +1,7 @@
 # dorado_basecalling_with_qscore
 
+[![DOI](https://zenodo.org/badge/1167837858.svg)](https://doi.org/10.5281/zenodo.18942954)
+
 A modular Dorado basecalling pipeline with multiplex support, optional alignment, reads quality summary, and downstream format conversion, organized into structured and reproducible steps.
 
 ---
