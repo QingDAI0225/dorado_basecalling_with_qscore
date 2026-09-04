@@ -13,14 +13,37 @@ set -euo pipefail
 mkdir -p logs
 
 POD5_DIR="${POD5_DIR:-/work/qd33/nanopore/20251020_MLI_PCO_20ng/MLI_PCO_20ng/20251020_1251_MN33275_FBD19880_80f4df29/pod5_skip}"
-BIND="${BIND:-/work/qd33,/cwork/qd33}"
+BIND="${BIND:-/work/qd33,/cwork/qd33,/hpc/dctrl/qd33}"
 OUTDIR="${OUTDIR:-/work/qd33/data/basecalling_data/20251020_MLI_PCO_20ng_dorado131_trim}"
 APPTAINER_IMG="${APPTAINER_IMG:-docker://ontresearch/dorado:sha00aa724a69ddc5f47d82bd413039f912fdaf4e77}"
 KIT="${KIT:-SQK-NBD114-96}"
 MODEL="${MODEL:-sup}"
+REFERENCE="${REFERENCE:-}"
+BARCODE_MODE="${BARCODE_MODE:-either_end}"
 # --------------------------------
 
-APPTAINER_RUN=(apptainer -s run --nv --bind "${BIND}" "${APPTAINER_IMG}")
+case "$BARCODE_MODE" in
+  either_end)
+    BARCODE_ARGS=(--kit-name "$KIT")
+    ;;
+  both_ends)
+    BARCODE_ARGS=(--kit-name "$KIT" --barcode-both-ends)
+    ;;
+  *)
+    echo "BARCODE_MODE must be 'either_end' or 'both_ends', got: $BARCODE_MODE" >&2
+    exit 1
+    ;;
+esac
+
+REFERENCE_ARGS=()
+if [[ -n "$REFERENCE" ]]; then
+  [[ -r "$REFERENCE" ]] || { echo "Reference not readable: $REFERENCE" >&2; exit 1; }
+  REFERENCE="$(realpath "$REFERENCE")"
+  BIND="${BIND},$(dirname "$REFERENCE")"
+  REFERENCE_ARGS=(--reference "$REFERENCE")
+fi
+
+APPTAINER_RUN=(apptainer -s run --nv --bind "$BIND" "${APPTAINER_IMG}")
 
 mapfile -t POD5S < <(find "$POD5_DIR" -type f -name "*.pod5" | sort)
 N="${#POD5S[@]}"
@@ -54,15 +77,17 @@ echo "  POD5   : $POD5"
 echo "  OUT    : $TASK_OUT"
 echo "  KIT    : $KIT"
 echo "  MODEL  : $MODEL"
+echo "  MODE   : $BARCODE_MODE"
+echo "  REF    : ${REFERENCE:-none}"
 echo "  THREADS: $THREADS"
 echo "  INDEX  : ${SLURM_ARRAY_TASK_ID}/${N}"
 echo "  IMG    : $APPTAINER_IMG"
 
 "${APPTAINER_RUN[@]}" dorado basecaller "${MODEL}" "${POD5}" \
-  --kit-name "${KIT}" \
+  "${BARCODE_ARGS[@]}" \
   --emit-summary \
+  "${REFERENCE_ARGS[@]}" \
   --output-dir "${TASK_OUT}"
-#  --reference /hpc/dctrl/qd33/reference_genome/reference.fasta \
 
 date > "$STAMP"
 
