@@ -11,10 +11,14 @@ ACCOUNT="chsi"
 
 MERGED_DIR="${MERGED_DIR%/}"
 OUT_DIR="${OUT_DIR%/}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SLURM_SCRIPT="${SCRIPT_DIR}/bam_to_fastq_array.sh"
+mkdir -p "${SCRIPT_DIR}/logs"
+cd "$SCRIPT_DIR"
 
-N=$(find "$MERGED_DIR" -maxdepth 1 -type f -name 'barcode*.bam' | wc -l | tr -d ' ')
+N=$(find "$MERGED_DIR" -maxdepth 1 -type f \( -name 'barcode*.bam' -o -name 'unclassified.bam' \) | wc -l | tr -d ' ')
 if [[ "$N" == "0" ]]; then
-  echo "No barcode*.bam found in $MERGED_DIR"
+  echo "No barcode*.bam or unclassified.bam found in $MERGED_DIR"
   exit 1
 fi
 
@@ -26,4 +30,4 @@ sbatch \
   -p "$PARTITION" -A "$ACCOUNT" \
   --cpus-per-task="$THREADS" \
   --array=0-"$ARRAY_MAX"%"$MAX_CONCURRENT" \
-  bam_to_fastq_array.sh "$MERGED_DIR" "$SAMTOOLS_IMG" "$THREADS" "$OUT_DIR"
+  "$SLURM_SCRIPT" "$MERGED_DIR" "$SAMTOOLS_IMG" "$THREADS" "$OUT_DIR"

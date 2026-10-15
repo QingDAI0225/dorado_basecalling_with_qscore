@@ -9,13 +9,17 @@ ACCOUNT="chsi"
 
 OUTDIR="${OUTDIR%/}"
 PERPOD5="${OUTDIR}/per_pod5"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SLURM_SCRIPT="${SCRIPT_DIR}/merge_barcode_bams_array.sh"
+mkdir -p "${SCRIPT_DIR}/logs"
+cd "$SCRIPT_DIR"
 
-N=$(find "${PERPOD5}" -type d -path "*bam_pass/barcode*" -printf "%f\n" \
-  | grep -E '^barcode[0-9]+$' | sort -u | wc -l | tr -d ' ')
+N=$(find "${PERPOD5}" -type d -path "*bam_pass/*" -printf "%f\n" \
+  | grep -E '^(barcode[0-9]+|unclassified)$' | sort -u | wc -l | tr -d ' ')
 
-(( N > 0 )) || { echo "No barcode dirs found under ${PERPOD5}"; exit 1; }
+(( N > 0 )) || { echo "No barcode or unclassified dirs found under ${PERPOD5}"; exit 1; }
 
 ARRAY="0-$((N-1))%${MAX_CONCURRENT}"
 echo "Submitting: N=${N}, array=${ARRAY}"
 
-sbatch -p "$PARTITION" -A "$ACCOUNT" --array="${ARRAY}" merge_barcode_bams_array.sh "${OUTDIR}" "${SAMTOOLS_IMG}"
+sbatch -p "$PARTITION" -A "$ACCOUNT" --array="${ARRAY}" "$SLURM_SCRIPT" "${OUTDIR}" "${SAMTOOLS_IMG}"

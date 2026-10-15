@@ -22,10 +22,10 @@ OUT_DIR="${OUT_DIR%/}"
 [[ -d "$MERGED_DIR" ]] || { echo "MERGED_DIR not found: $MERGED_DIR" >&2; exit 1; }
 mkdir -p "$OUT_DIR"
 
-mapfile -t BAMS < <(find "$MERGED_DIR" -maxdepth 1 -type f -name 'barcode*.bam' | sort)
+mapfile -t BAMS < <(find "$MERGED_DIR" -maxdepth 1 -type f \( -name 'barcode*.bam' -o -name 'unclassified.bam' \) | sort)
 TOTAL="${#BAMS[@]}"
 if (( TOTAL == 0 )); then
-  echo "No barcode*.bam found in $MERGED_DIR"
+  echo "No barcode*.bam or unclassified.bam found in $MERGED_DIR"
   exit 0
 fi
 

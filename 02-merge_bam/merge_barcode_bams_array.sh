@@ -61,14 +61,14 @@ if [[ ! -f "${SETUP_DONE}" && ! -f "${SETUP_FAIL}" ]]; then
       rm -f "${SETUP_FAIL}.tmp"
     fi
 
-    # ---- 2) Build barcode list by scanning any depth for bam_pass/barcodeXX ----
+    # ---- 2) Build classification list, retaining unclassified reads ----
     tmp_bc="${BARCODE_LIST}.tmp.$$"
-    find "${PERPOD5}" -type d -path "*bam_pass/barcode*" -printf "%f\n" \
-      | grep -E '^barcode[0-9]+$' \
+    find "${PERPOD5}" -type d -path "*bam_pass/*" -printf "%f\n" \
+      | grep -E '^(barcode[0-9]+|unclassified)$' \
       | sort -u > "${tmp_bc}"
 
     if ! [[ -s "${tmp_bc}" ]]; then
-      echo "No barcode dirs found under ${PERPOD5} matching */bam_pass/barcodeXX" > "${SETUP_FAIL}"
+      echo "No barcode or unclassified dirs found under ${PERPOD5}/bam_pass" > "${SETUP_FAIL}"
       rm -f "${tmp_bc}"
       exit 1
     fi
